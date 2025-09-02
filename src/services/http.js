@@ -16,3 +16,11 @@ export const q = (params = {}) =>
       ? v.map(x => `${k}[]=${encodeURIComponent(x)}`).join("&")
       : `${k}=${encodeURIComponent(v)}`)
     .join("&");
+    
+export function denormalizeRow(r) {
+  if (!r || typeof r !== "object") return r;
+  if (r.fields && typeof r.fields === "object") {
+    return { ...r, ...r.fields };
+  }
+  return r; // para NocoDB é identidade
+}

@@ -164,6 +164,70 @@ export default function useRegrasConexao() {
     await reload();
   }, [reload]);
 
+  // Converte o objeto da UI para o formato do NocoDB (INSERT)
+// - cobre ambos os esquemas: "acl" e "legacy"
+// - aplica defaults sensatos (ATIVO/ENABLED = true, PRIORIDADE/PRIORITY = 999, ACTION = ALLOW)
+const denormalizeRow = (p = {}) => {
+  // se quiser reusar parte da lógica do patch:
+  const base = denormalizePatch(p);
+  const out = { ...base };
+
+  if (ENV.schema !== "acl") {
+    // LEGACY
+    if (!("ATIVO" in out))        out.ATIVO        = !(p.ATIVO === false || p.ATIVO === 0 || p.ATIVO === "false");
+    if (!("PRIORIDADE" in out))   out.PRIORIDADE   = Number(p.PRIORIDADE ?? 999);
+    if (!("NOME_REGRA" in out))   out.NOME_REGRA   = p.NOME_REGRA || "";
+    if (!("DESCRICAO" in out))    out.DESCRICAO    = p.DESCRICAO || "";
+    if (!("TAGS" in out))         out.TAGS         = p.TAGS || "";
+    if (!("PATTERN" in out))      out.PATTERN      = p.PATTERN || "";
+    if (!("ACAO" in out))         out.ACAO         = String(p.ACAO || "allow").toLowerCase();
+    if (!("ROLE" in out))         out.ROLE         = p.ROLE || "any";
+    // Id NÃO deve ser enviado em insert
+    delete out.Id;
+    delete out.ID;
+    delete out.id;
+    return out;
+  }
+
+  // ACL
+  if (!("ENABLED" in out))     out.ENABLED   = !(p.ATIVO === false || p.ATIVO === 0 || p.ATIVO === "false");
+  if (!("PRIORITY" in out))    out.PRIORITY  = Number(p.PRIORIDADE ?? p.PRIORITY ?? 999);
+  if (!("NAME" in out))        out.NAME      = p.NOME_REGRA || p.NAME || "";
+  if (!("NOTE" in out))        out.NOTE      = p.DESCRICAO || p.NOTE || "";
+  if (!("TAGS" in out))        out.TAGS      = p.TAGS || "";
+  if (!("IP_CIDR" in out))     out.IP_CIDR   = p.PATTERN || p.IP_CIDR || "";
+  if (!("ACTION" in out))      out.ACTION    = String(p.ACAO || p.ACTION || "ALLOW").toUpperCase();
+
+  // SUBJECT_TYPE / SUBJECT_VALUE (com fallbacks)
+  const hasST = "SUBJECT_TYPE" in p;
+  const hasSV = "SUBJECT_VALUE" in p;
+  if (!("SUBJECT_TYPE" in out) && (hasST || p.ROLE)) {
+    const st = String(p.SUBJECT_TYPE || (p.ROLE && p.ROLE !== "any" ? "role" : "global")).toLowerCase();
+    out.SUBJECT_TYPE = st.toUpperCase(); // GLOBAL | ROLE | EMAIL
+  }
+  // default GLOBAL se nada informado
+  if (!("SUBJECT_TYPE" in out)) out.SUBJECT_TYPE = "GLOBAL";
+
+  if (!("SUBJECT_VALUE" in out)) {
+    if (hasSV) {
+      out.SUBJECT_VALUE = p.SUBJECT_VALUE || "";
+    } else if (out.SUBJECT_TYPE === "ROLE") {
+      out.SUBJECT_VALUE = p.ROLE && p.ROLE !== "any" ? p.ROLE : "any";
+    } else {
+      out.SUBJECT_VALUE = "";
+    }
+  }
+
+  // manter compat ROLE se vier da UI
+  if (!("ROLE" in out) && p.ROLE) out.ROLE = p.ROLE;
+  // Id NÃO deve ser enviado em insert
+  delete out.Id;
+  delete out.ID;
+  delete out.id;
+  return out;
+};
+
+
  // PATCH ---------------------------------------------------
 const patch = useCallback(async (id, patchData) => {
  if (id == null || id === "") throw new Error("Id inválido");
