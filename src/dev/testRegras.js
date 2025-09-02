@@ -26,30 +26,30 @@ export async function debugRegras() {
     { nome:"Motivo transferência (Ouro)",  ctx:{ semTaxa:false, bloqueado:false, clienteAtivo:true, motivo:"transferencia"}, classe:"Ouro" },
   ];
 
-  console.log("=== REGRAS CARREGADAS ===");
+  //console.log("=== REGRAS CARREGADAS ===");
   regras.forEach(r=>{
-    console.log(`• [${r.Prioridade}] ${r._nome}  ativo=${r.Ativa}  tipo=${r.Tipo}  val=${r.ValorCentavos??""}  perc=${r.Percentual??""} stop=${r.PararAoAplicar}`);
+    //console.log(`• [${r.Prioridade}] ${r._nome}  ativo=${r.Ativa}  tipo=${r.Tipo}  val=${r.ValorCentavos??""}  perc=${r.Percentual??""} stop=${r.PararAoAplicar}`);
   });
 
   for (const c of casos) {
     const base = getBase(c.classe);
     const { total, hits } = calcularComissaoTrace({ baseCentavos: base, ctx: c.ctx, regras });
 
-    console.log("\n---", c.nome, "---");
-    console.log("Classe:", c.classe, "| Base =", brl(base));
-    console.log("Ctx:", JSON.stringify(c.ctx, null, 2));
+    //console.log("\n---", c.nome, "---");
+    //console.log("Classe:", c.classe, "| Base =", brl(base));
+    //console.log("Ctx:", JSON.stringify(c.ctx, null, 2));
 
     if (!hits.length) {
-      console.log("TRACE: nenhuma regra aplicável (fica a base).");
+      //console.log("TRACE: nenhuma regra aplicável (fica a base).");
     } else {
-      console.log("TRACE:");
+      //console.log("TRACE:");
       hits.forEach(h=>{
-        console.log(
-          `   → ${h.nome||h.id} | ${h.tipo} | ${brl(h.before)} -> ${brl(h.after)}${h.stop?" (stop)":""}`
-        );
+        //console.log(
+        //  `   → ${h.nome||h.id} | ${h.tipo} | ${brl(h.before)} -> ${brl(h.after)}${h.stop?" (stop)":""}`
+        //);
       });
     }
-    console.log("TOTAL =>", brl(total));
+    //console.log("TOTAL =>", brl(total));
   }
 }
 

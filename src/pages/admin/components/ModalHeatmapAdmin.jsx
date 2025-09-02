@@ -95,11 +95,13 @@ export default function ModalHeatmapAdmin({
           acc[k] = (acc[k] || 0) + 1;
           return acc;
         }, {});
-        console.group("%c[HEATMAP ADMIN] dataset bruto recebido", "color:#22d3ee");
-        console.log("Total:", flat.length, " · Com coords:", com, " · Sem coords:", sem);
-        console.log("Por vendedor:", porVendedor);
-        console.log("Exemplos (primeiros 5):", flat.slice(0, 5));
-        console.groupEnd();
+
+
+        //console.group("%c[HEATMAP ADMIN] dataset bruto recebido", "color:#22d3ee");
+        //console.log("Total:", flat.length, " · Com coords:", com, " · Sem coords:", sem);
+        //console.log("Por vendedor:", porVendedor);
+        //console.log("Exemplos (primeiros 5):", flat.slice(0, 5));
+        //console.groupEnd();
       } catch (e) {
         console.error("[HEATMAP ADMIN] fallback fetch error:", e);
       }
@@ -126,12 +128,12 @@ export default function ModalHeatmapAdmin({
     // LOG pós-filtro
     const com = out.filter(x => parseLat(x.latitude) != null && parseLng(x.longitude) != null).length;
     const names = Array.from(new Set(out.map(vendOf))).filter(Boolean);
-    console.group("%c[HEATMAP ADMIN] após filtro de data", "color:#a78bfa");
-    console.log("Range aplicado:", { de: dateFrom, ate: dateTo });
-    console.log("Total filtrado:", out.length, " · Com coords:", com);
-    console.log("Vendedores (filtrado):", names);
-    console.log("Exemplos (primeiros 5):", out.slice(0, 5));
-    console.groupEnd();
+    //console.group("%c[HEATMAP ADMIN] após filtro de data", "color:#a78bfa");
+    //console.log("Range aplicado:", { de: dateFrom, ate: dateTo });
+    //console.log("Total filtrado:", out.length, " · Com coords:", com);
+    //console.log("Vendedores (filtrado):", names);
+    //console.log("Exemplos (primeiros 5):", out.slice(0, 5));
+    //console.groupEnd();
 
     return out;
   }, [raw, dateFrom, dateTo]);

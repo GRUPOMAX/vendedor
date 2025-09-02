@@ -184,12 +184,13 @@ export default function HeatmapAdmin({
     return () => ro.disconnect();
   }, []);
 
-
+/*
     useEffect(() => {
     if (!Array.isArray(data)) {
       console.warn("[HEATMAP ADMIN] data não é array:", data);
       return;
     }
+
     console.group("%c[HEATMAP ADMIN] render", "color:#34d399");
     console.log("Itens recebidos:", data.length);
     console.log("Vendedores no select:", vendedorOptions);
@@ -204,6 +205,7 @@ export default function HeatmapAdmin({
     console.groupEnd();
   }, [data, vendedorKey, vendedorOptions, points]);
 
+  */
   return (
     <div className="w-full h-full flex flex-col gap-3">
       <div

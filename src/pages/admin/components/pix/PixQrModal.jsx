@@ -214,12 +214,12 @@ export default function PixQrModal({
         throw new Error("Campos obrigatórios ausentes: fornecedor, valor ou chave Pix.");
       }
 
-      console.log("[DEBUG] Enviando contasPayload:", contasPayload);
+      //console.log("[DEBUG] Enviando contasPayload:", contasPayload);
       const criado = await createContaPagar(contasPayload);
       setCpCreated(criado);
 
       const novoId = (criado?.id != null) ? String(criado.id) : null;
-      console.log("[NocoDB] novoId criado:", novoId);
+      //console.log("[NocoDB] novoId criado:", novoId);
 
       // Monta dadosNC com id_antigo para auditoria
       const dadosNC = {

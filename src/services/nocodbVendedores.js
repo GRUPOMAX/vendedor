@@ -332,3 +332,32 @@ export async function readCpfStatus(cpf) {
   const { dadosJson, vendedorNome } = found;
   return { vendedor: vendedorNome, status: dadosJson[cpfFmt] };
 }
+
+
+// deep-equal leve (ordem de chaves irrelevante)
+const _stable = (v) => JSON.stringify(v ?? null, Object.keys(v || {}).sort());
+export async function patchCpfStatusIfChanged(cpfKey, nextStatus, vendedor) {
+  // lê o registro atual (se existir)
+  const curr = await readCpfStatus(cpfKey).catch(() => null); // { id, cpf, vendedor, status }
+  const prevStatus = curr?.status ?? null;
+
+  // nada mudou? não patcha
+  if (_stable(prevStatus) === _stable(nextStatus) && (curr?.vendedor || vendedor) === vendedor) {
+    return { changed: false, id: curr?.id || null };
+  }
+
+  // existe linha? PATCH; senão, cria (mantém compat com seu upsert antigo)
+  if (curr?.id) {
+    // PATCH pela primary key (id) – ajuste a URL helper conforme seu wrapper
+    await fetch(`${NOCO_BASE}/db/data/v1/<schema>/<tabela>/${curr.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "xc-token": NOCO_TOKEN },
+      body: JSON.stringify({ cpf: cpfKey, vendedor, status: nextStatus }),
+    });
+    return { changed: true, id: curr.id };
+  } else {
+    // create
+    await upsertCpfStatusByCpf(cpfKey, nextStatus, vendedor);
+    return { changed: true, id: null };
+  }
+}

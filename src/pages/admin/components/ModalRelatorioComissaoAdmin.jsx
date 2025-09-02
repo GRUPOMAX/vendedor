@@ -601,9 +601,9 @@ const vendasComCalculoDedup = useMemo(() => {
     const keep = latestByKey.get(key)?.ref;
     if (keep && keep !== v) {
       v.__deduct = true; // dup -> não comissiona
-      console.log(`[DEBUG] Deduplicando venda de ${vend} com CPF ${cpf} (menor data: ${dateMs(v)} vs ${dateMs(keep)})`);
+      //console.log(`[DEBUG] Deduplicando venda de ${vend} com CPF ${cpf} (menor data: ${dateMs(v)} vs ${dateMs(keep)})`);
     } else {
-      console.log(`[DEBUG] Mantendo venda de ${vend} com CPF ${cpf} (data: ${dateMs(v)})`);
+      //console.log(`[DEBUG] Mantendo venda de ${vend} com CPF ${cpf} (data: ${dateMs(v)})`);
     }
   }
   return out;

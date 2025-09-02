@@ -7,9 +7,10 @@ const TONE = {
   EP:"bg-indigo-50 border-indigo-200 text-indigo-700 dark:bg-indigo-900/20 dark:border-indigo-800 dark:text-indigo-300",
   S: "bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-300",
   C: "bg-rose-50 border-rose-200 text-rose-700 dark:bg-rose-900/20 dark:border-rose-800 dark:text-rose-300",
+  NA: "bg-zinc-50 border-zinc-200 text-zinc-700 dark:bg-zinc-800/30 dark:border-zinc-700 dark:text-zinc-300",
 };
 
-const SHORT = { N: "Novo", P: "Pendente", EP: "Em prog.", S: "Solucionado", C: "Cancelado" };
+const SHORT = { N: "Novo", P: "Pendente", EP: "Em prog.", S: "Solucionado", C: "Cancelado", NA: "Não ativo" };
 
 export default function AtendStatusBadge({ code, label }) {
   if (!code) return null;

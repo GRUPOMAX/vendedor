@@ -22,6 +22,8 @@ import useComissoes from "./hooks/useComissoes";
 import ClassificacaoTable from "./components/ClassificacaoTable"; 
 import { buildCtx, calcularComissaoPorRegras } from "../../services/comissaoService";
 import { listRegras as listRegrasComissao } from "../../services/regras/nocodbRegrasComissao";
+import { welcomeLog } from '../../utils/welcomeLog';
+import { useAuth } from '../../state/auth'; // ajuste o caminho do seu projeto
 
 import dayjs from "../../utils/dayjs"; // ajuste o path se já houver import
 
@@ -141,7 +143,7 @@ export default function AdminDashboard() {
   const [relatorioOpen, setRelatorioOpen] = useState(false);
   const { lista: comissoes, loading: loadingCom, error: errCom, saveLista } = useComissoes();
   const [statusVersion, setStatusVersion] = useState(0);
-
+  const { user } = useAuth?.() || { user: null };
 
 
   const [todasAsVendas, setTodasAsVendas] = useState([]);
@@ -152,6 +154,14 @@ export default function AdminDashboard() {
       const off2 = onDev("status:clientes:bulkUpdated", () => setStatusVersion(v => v + 1));
       return () => { off1 && off1(); off2 && off2(); };
     }, []);
+
+      useEffect(() => {
+        welcomeLog({
+          role: "ADMIN",
+          name: user?.nome || user?.name || "",
+          email: user?.email || "",
+        });
+      }, [user]);
 
 
 
@@ -177,10 +187,10 @@ const tabelaPct = useMemo(() => {
   return Object.keys(map).length ? { map, comissoes: comissoesObj } : null;
 }, [comissoes]);
 
-
+  /*
   console.log("[DBG regras]", regras);
   console.log("[DBG tabelaPct]", tabelaPct);
-
+  */
   // recarrega do NocoDB (ou de onde vier)
   const refreshRegras = async () => {
     try {
@@ -447,7 +457,7 @@ const tabelaClassificacao = useMemo(() => {
       .map((x) => x.v)
       .sort((a, b) => dateMs(b) - dateMs(a));
 
-    console.log(`[DEBUG] Vendas filtradas p/ ${alvo}: ${regsVend.length} | únicas (por CPF): ${regsVendUnique.length}`);
+    /*console.log(`[DEBUG] Vendas filtradas p/ ${alvo}: ${regsVend.length} | únicas (por CPF): ${regsVendUnique.length}`);*/
 
     // ✅ Soma com REGRAS sem alterar o contexto (NÃO forçar clienteAtivo)
     let subtotal = 0;
@@ -480,18 +490,18 @@ const tabelaClassificacao = useMemo(() => {
         });
       }
 
-      console.log(`[DEBUG] Venda de ${alvo}, CPF ${cpf}, Comissão: ${val}, Subtotal: ${subtotal.toFixed(2)}`, {
+      /*console.log(`[DEBUG] Venda de ${alvo}, CPF ${cpf}, Comissão: ${val}, Subtotal: ${subtotal.toFixed(2)}`, {
         ctx,
         clienteStatus: cliente,
-      });
+      });*/
     }
 
 
     // Loga status do mapaClientesGlobal pra investigar
-    console.log(`[DEBUG] mapaClientesGlobal para ${alvo}`, Object.keys(mapaClientesGlobal).filter(cpf => regsVend.some(v => guessCPF(v) === cpf)).map(cpf => ({
+    /*console.log(`[DEBUG] mapaClientesGlobal para ${alvo}`, Object.keys(mapaClientesGlobal).filter(cpf => regsVend.some(v => guessCPF(v) === cpf)).map(cpf => ({
       cpf,
       status: mapaClientesGlobal[cpf],
-    })));
+    })));*/
 
     return { ...row, total: Number(subtotal.toFixed(2)), vendas: vendasValidas.length };
   });
@@ -548,12 +558,14 @@ const getStatusVenda = (v) => (v?.status || v?.Status || "").toString();
 
 
 useEffect(() => {
+  /*
   console.log("[DBG regras]", regras);
   console.log("[DBG tabelaPct]", tabelaPct);
   console.log("[DBG classifPorVendedor (raw)]", (classificacaoPorVendedor || []).slice(0,3));
   console.log("[DBG vendasFiltradas (raw)]", (vendasFiltradas || []).slice(0,5));
   console.log("[DBG statusByVendedorCpf keys]", Object.keys(statusByVendedorCpf || {}).length);
   console.log("[DBG tabelaClassificacao]", (tabelaClassificacao || []).slice(0,3));
+  */
 
   // soma do que veio cru do hook (pra comparar com a tabela calculada)
   const somaHook = (classificacaoPorVendedor || []).reduce(
@@ -564,7 +576,7 @@ useEffect(() => {
         ).replace(/[^\d,.-]/g,"").replace(/\./g,"").replace(",",".")
       ) || 0
     ), 0);
-  console.log("[DBG soma hook]", somaHook);
+  //console.log("[DBG soma hook]", somaHook);
 }, [
   tabelaClassificacao,
   regras,

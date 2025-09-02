@@ -35,6 +35,6 @@ async function postJson(path, body) {
  * @param {object} payload
  */
 export async function createContaPagar(payload) {
-  console.log("[createContaPagar] Enviando:", payload);
+  //console.log("[createContaPagar] Enviando:", payload);
   return await postJson("/contas-apagar", payload);
 }

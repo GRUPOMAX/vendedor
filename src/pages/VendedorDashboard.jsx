@@ -26,6 +26,9 @@ import { listRegras as listRegrasComissao } from '../services/regras/nocodbRegra
 import { useTheme } from "../state/ThemeContext"; // ADICIONE
 import { useNavigate } from "react-router-dom";   // se já não tiver
 
+import { welcomeLog } from '../utils/welcomeLog';
+
+
 import dayjs from '../utils/dayjs';
 
 // Adicione esta função no topo do arquivo (como no admin)
@@ -434,6 +437,7 @@ export default function VendedorDashboard() {
   const [fichasNome, setFichasNome] = useState('');
   const [fichasLista, setFichasLista] = useState([]);
   const [regras, setRegras] = useState([]);
+  
 
   const navigate = useNavigate();
 
@@ -444,6 +448,14 @@ export default function VendedorDashboard() {
       navigate("/login", { replace: true });
     }
 }
+
+  useEffect(() => {
+    welcomeLog({
+      role: "Vendedor",
+      name: user?.nome || user?.name || "",
+      email: user?.email || "",
+    });
+  }, [user]);
 
 // gates de abertura (só abrem no desktop)
   const openHeatmap = useCallback(() => {
@@ -500,15 +512,15 @@ const { linhasTabela, fichasPorCPF } = useMemo(() => {
         principal: r, 
         lista: [r] 
       });
-      console.log(`[DEBUG VEND] Mantendo venda única para CPF ${cpf} (data: ${ts})`);
+      //console.log(`[DEBUG VEND] Mantendo venda única para CPF ${cpf} (data: ${ts})`);
     } else {
       atual.lista.push(r);
       const tsPrincipal = dateMs(atual.principal);
       if (Number.isFinite(ts) && (ts > tsPrincipal || !Number.isFinite(tsPrincipal))) {
         atual.principal = r;
-        console.log(`[DEBUG VEND] Atualizando principal para CPF ${cpf} (nova data: ${ts} > ${tsPrincipal})`);
+        //console.log(`[DEBUG VEND] Atualizando principal para CPF ${cpf} (nova data: ${ts} > ${tsPrincipal})`);
       } else {
-        console.log(`[DEBUG VEND] Excluindo duplicata para CPF ${cpf} (data: ${ts} <= ${tsPrincipal})`);
+        //console.log(`[DEBUG VEND] Excluindo duplicata para CPF ${cpf} (data: ${ts} <= ${tsPrincipal})`);
       }
     }
   }
@@ -522,7 +534,7 @@ const { linhasTabela, fichasPorCPF } = useMemo(() => {
   const lookup = {};
   for (const [cpf, v] of mapa.entries()) lookup[cpf] = v.lista;
 
-  console.log(`[DEBUG VEND] Total linhasTabela: ${linhas.length} (deveria ser 8 para Isaque)`);
+  //console.log(`[DEBUG VEND] Total linhasTabela: ${linhas.length} (deveria ser 8 para Isaque)`);
   return { linhasTabela: linhas, fichasPorCPF: lookup };
 }, [registros]);
 
@@ -534,10 +546,10 @@ useEffect(() => {
     // ⚠️ Só calcula quando a TABELA de comissão existir e tivermos as linhas deduplicadas.
     // 'regras' pode ser [] (engine lida com isso e cai no fallback por cliente).
     if (!tabelaPct || !Array.isArray(linhasTabela)) {
-      console.log("[DEBUG VEND] Aguardando insumos (não zerando):", {
-        tabelaPctLoaded: !!tabelaPct,
-        linhasOk: Array.isArray(linhasTabela),
-      });
+      //console.log("[DEBUG VEND] Aguardando insumos (não zerando):", {
+        //tabelaPctLoaded: !!tabelaPct,
+        //linhasOk: Array.isArray(linhasTabela),
+      //});
       return; // ❌ não zera durante o carregamento
     }
 
@@ -549,7 +561,7 @@ useEffect(() => {
       Array.isArray(regras) ? regras : []   // garante array
     );
 
-    console.log(
+    /*console.log(
       `[DEBUG VEND] Comissão total calculada: R$ ${total.toFixed(2)} (vendas deduplicadas: ${linhasTabela.length})`,
       linhasTabela.map(r => ({
         cpf: guessCPF(r),
@@ -564,7 +576,7 @@ useEffect(() => {
           })()
         )
       }))
-    );
+    );*/
 
     setComissaoTotal(total);
   };
@@ -601,12 +613,12 @@ function calcularComissaoTotal(vendas, mapa, classificacao, tabela, regras) {
         : calcularComissaoCliente({ cpf, cliente, classificacao, tabela });
     }
 
-    console.log(`[DEBUG VEND] Venda CPF ${cpf}, Comissão: ${valor}, Subtotal: ${total + valor}`, {
+    /*console.log(`[DEBUG VEND] Venda CPF ${cpf}, Comissão: ${valor}, Subtotal: ${total + valor}`, {
       data: r.dataHora,
       transferencia,
       ctx,
       valorClassificacaoCentavos: ctx.valorClassificacaoCentavos,
-    });
+    });*/
 
     total += (Number.isFinite(valor) ? valor : 0);
   }
@@ -673,7 +685,7 @@ function getValorClassificacaoCentavos(tabela, classificacao) {
         if (ts < df || ts > dt) { outOfRange++; return false; }
         return true;
       });
-      console.log("[DEBUG VEND][Filtro] total:", data.length, "| ok:", filtered.length, "| invalid:", invalid, "| foraPeriodo:", outOfRange);
+      //console.log("[DEBUG VEND][Filtro] total:", data.length, "| ok:", filtered.length, "| invalid:", invalid, "| foraPeriodo:", outOfRange);
 
 
 

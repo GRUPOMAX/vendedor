@@ -54,16 +54,16 @@ async function getClienteByNome(nome, cpfPossivel) {
   let lastPayload = null;
 
   for (const url of urls) {
-    console.log("[IXC:getClienteByNome] tentando:", url);
+    //console.log("[IXC:getClienteByNome] tentando:", url);
     const r = await fetch(url, { cache: "no-store" });
     if (!r.ok) {
-      console.warn("[IXC:getClienteByNome] HTTP", r.status, "em", url);
+      //console.warn("[IXC:getClienteByNome] HTTP", r.status, "em", url);
       continue;
     }
 
     const j = await r.json();
     lastPayload = j;
-    console.log("[IXC:getClienteByNome] resposta bruta:", j);
+    //console.log("[IXC:getClienteByNome] resposta bruta:", j);
 
     const items = Array.isArray(j?.items) ? j.items
                 : Array.isArray(j?.data)  ? j.data

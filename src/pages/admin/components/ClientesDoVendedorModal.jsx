@@ -29,6 +29,34 @@ const IXC_TITULO_API   = "https://ixc-buscar-titulo.api.webserver.app.br/titulos
 const IXC_ORDENS_API  =  "https://ixc-buscar-ordens.api.webserver.app.br/ordens";
 
 
+const IXC_DEBUG = false; // liga/desliga logs
+
+async function debugFetch(url, opts) {
+  if (IXC_DEBUG) console.log("[IXC] =>", url, opts || {});
+  const r = await fetch(url, { cache: "no-store", ...(opts || {}) });
+  const clone = r.clone();
+  let body = null;
+  try { body = await clone.json(); } catch {}
+  if (IXC_DEBUG) console.log("[IXC] <=", r.status, url, body);
+  return r;
+}
+
+async function patchCpfStatusIfChanged(cpfKey, nextStatus, vendedorAtual = "Outros") {
+ try {
+   const existing = await readCpfStatus(cpfKey).catch(() => null); // { status, vendedor, ... } | null
+   const before = existing?.status ? JSON.stringify(existing.status) : null;
+   const after  = nextStatus ? JSON.stringify(nextStatus) : null;
+   const changed = before !== after;
+   if (changed) {
+     await upsertCpfStatusByCpf(cpfKey, nextStatus, vendedorAtual);
+   }
+   return { changed, before: existing?.status ?? null, after: nextStatus };
+ } catch (e) {
+   // propaga para o caller lidar no contador de erros
+   throw e;
+ }
+}
+
 
 
 const onlyDigits = (s) => String(s || "").replace(/\D/g, "");
@@ -68,7 +96,7 @@ async function getClienteByNome(nome, cpfPossivel) {
   }
 
   for (const url of urls) {
-    const r = await fetch(url, { cache: "no-store" });
+    const r = await debugFetch(url);
     if (!r.ok) continue;
     const j = await r.json();
     const items = Array.isArray(j?.items) ? j.items : Array.isArray(j?.data) ? j.data : [];
@@ -84,7 +112,7 @@ async function getClienteByNome(nome, cpfPossivel) {
 
 async function getContratosByClienteId(clienteId) {
   const url = `${IXC_CONTRATO_API}?clienteId=${encodeURIComponent(clienteId)}&raw=0`;
-  const r = await fetch(url);
+  const r = await debugFetch(url);
   if (!r.ok) throw new Error(`Falha ao buscar contratos: ${r.status}`);
   const j = await r.json();
   return Array.isArray(j?.items) ? j.items : [];
@@ -146,7 +174,7 @@ function fallbackPagouTaxaComRenegociacao(titulos, taxaValor) {
 
 async function getTitulosAbertosRecebidos(clienteId) {
   const url = `${IXC_TITULO_API}?clienteId=${encodeURIComponent(clienteId)}&labels=1&raw=0`;
-  const r = await fetch(url);
+  const r = await debugFetch(url);
   if (!r.ok) throw new Error(`Falha ao buscar títulos: ${r.status}`);
   const j = await r.json();
   return Array.isArray(j?.items) ? j.items : [];
@@ -192,7 +220,9 @@ function parseTitularAnterior(os) {
 
 async function calcularStatusViaIXC({ nome, cpf }) {
   // 1) cliente
-  const { id: clienteId } = await getClienteByNome(nome, cpf);
+  const cliente = await getClienteByNome(nome, cpf); 
+  const clienteId = cliente?.id; 
+  const ativoFlag = String(cliente?._raw?.ativo || "").toUpperCase(); // "S" | "N" 
 
   // 2) contratos
   const contratos = await getContratosByClienteId(clienteId);
@@ -201,42 +231,78 @@ async function calcularStatusViaIXC({ nome, cpf }) {
   if (!contrato) throw new Error("SEM_CONTRATO");
 
   // 3) regras de comissão/ativação/bloqueio/taxa
-  const taxa = String(contrato?.taxa_instalacao ?? "0.00");
-  const isAtivoContrato = contrato?.status === "A";
-  const si = contrato?.status_internet; // "A" | "D" | "CM" | "CA" | "FA" | "AA"
-  const isBloqueado = si !== "A";
+    const taxa = String(contrato?.taxa_instalacao ?? "0.00");
+    const statusContrato = String(contrato?.status || "").toUpperCase(); // P|A|I|N|D
+    const si = String(contrato?.status_internet || "").toUpperCase();     // "A" | "D" | "CM" | ...
 
-  let PagouTaxa = "NAO";
-  let Ativado   = isAtivoContrato ? "SIM" : "NAO";
-  let Bloqueado = isBloqueado ? "SIM" : "NAO";
-  let Desistiu  = "NAO";
-  let Autorizado = null;
-  let SemTaxa   = parseFloat(taxa) === 0 ? "SIM" : "NAO";
+    let PagouTaxa  = "NAO";
+    let Ativado    = "NAO";
+    let Bloqueado  = "NAO";
+    let Desistiu   = "NAO";
+    let Autorizado = null;
+    const SemTaxa  = parseFloat(taxa) === 0 ? "SIM" : "NAO";
+
+    // Base: decidir por status do CONTRATO (quando cliente.ativo n├úo ajuda)
+    // P = Pr├®-contrato -> n├úo ativo, n├úo bloqueado
+    // A = Ativo        -> ativo, bloqueio depende do status_internet != "A"
+    // I = Inativo      -> n├úo ativo (exibe "N├úo ativo")
+    // N = Negativado   -> tratamos como bloqueado
+    // D = Desistiu     -> desistiu (sobrep├Áe os demais)
+    if (statusContrato === "A") {
+      Ativado   = "SIM";
+      Bloqueado = si !== "A" ? "SIM" : "NAO";
+    } else if (statusContrato === "I" || statusContrato === "P") {
+      // N├úo ativo (pr├®-contrato tamb├®m cai aqui)
+      Ativado   = "NAO";
+      Bloqueado = "NAO";
+    } else if (statusContrato === "N") {
+      // Negativado = n├úo ativo e bloqueado
+      Ativado   = "NAO";
+      Bloqueado = "SIM";
+    } else if (statusContrato === "D") {
+      // Desistiu vence qualquer outra interpreta├º├úo
+      Desistiu  = "SIM";
+      Ativado   = "NAO";
+      Bloqueado = "NAO";
+    }
+
+    // Se o cadastro do cliente veio explicitamente inativo, for├ºa ÔÇ£N├úo AtivoÔÇØ.
+    // (quando vier undefined, ficamos s├│ com a decis├úo do contrato acima)
+    const NaoAtivo = ativoFlag === "N" || (statusContrato === "I" || statusContrato === "P") ? "SIM" : "NAO";
+
+    // Se n├úo est├í ativo, n├úo chamar de ÔÇ£BloqueadoÔÇØ (fica ÔÇ£N├úo ativoÔÇØ/ÔÇ£DesistiuÔÇØ)
+    if (Ativado !== "SIM") {
+      Bloqueado = "NAO";
+      }
+
+
+  // ⬇⬇⬇ 1) titulos no escopo da função
+  let titulos = [];
 
   if (parseFloat(taxa) > 0) {
-    const titulos = await getTitulosAbertosRecebidos(clienteId);
+    // continua igual, só tirou o "const"
+    titulos = await getTitulosAbertosRecebidos(clienteId);
 
     const tituloRecebido = titulos.find((t) => t?.status === "R" && moneyEq(t?.valor, taxa));
     const tituloAberto   = titulos.find((t) => t?.status === "A" && moneyEq(t?.valor, taxa));
 
     if (tituloRecebido) {
-      // Mesmo tendo R, valida se houve renegociação que abre um A mais novo (id_saida==0)
       const fb = fallbackPagouTaxaComRenegociacao(titulos, taxa);
       PagouTaxa = fb ?? "SIM";
     } else {
-      // Sem R: tenta o mesmo fallback (ex.: 100 recebido + abriu RN 'A' mais novo)
       const fb = fallbackPagouTaxaComRenegociacao(titulos, taxa);
       PagouTaxa = fb ?? (tituloAberto ? "NAO" : "NAO");
     }
-
-    // (opcional) debug:
-    // console.debug("[ClientesDoVendedorModal] taxa=%s -> PagouTaxa=%s (temR=%s, temA=%s, fb=%s)",
-    //   taxa, PagouTaxa, !!tituloRecebido, !!tituloAberto, fb ?? null);
   }
+  
 
 
   // prioridade das saídas de Autorizado
-  if (Bloqueado === "SIM") {
+    // prioridade das saídas de Autorizado (inclui Desistiu) 
+  if (Desistiu === "SIM") { 
+    Autorizado = "NEGADO"; 
+  } else if (Bloqueado === "SIM") 
+    {
     Autorizado = "NEGADO";
   } else if (SemTaxa === "SIM" && Ativado === "SIM") {
     Autorizado = "SEM TAXA";
@@ -278,6 +344,7 @@ async function calcularStatusViaIXC({ nome, cpf }) {
     "Titular Anterior Documento": TitAnteriorDoc,
     "Titular Anterior Obs": TitAnteriorObs,
 
+    "Não Ativo": NaoAtivo,
     "Pagou Taxa": PagouTaxa,
     "Ativado": Ativado,
     "Bloqueado": Bloqueado,
@@ -285,6 +352,15 @@ async function calcularStatusViaIXC({ nome, cpf }) {
     "Autorizado": Autorizado,
     "Sem Taxa": SemTaxa,
   };
+
+  if (IXC_DEBUG) {
+  console.log("[IXC] cliente", clienteId, { ativo: cliente?._raw?.ativo, nome: cliente?.razao });
+  console.log("[IXC] contrato", { status: contrato?.status, status_internet: contrato?.status_internet, taxa });
+  console.log("[IXC] titulos.len", titulos?.length, "PagouTaxa=", PagouTaxa);
+  console.log("[IXC] titularidade", { AlterarTit, TitAnteriorNome, TitAnteriorDoc });
+  console.log("[IXC] FINAL toSave", toSave);
+}
+
 
   return toSave;
 }
@@ -321,6 +397,13 @@ function resumirStatus(statusObj = {}) {
     return { label: "Alteração de Titularidade", tone: "indigo", icon: "transfer" };
   }
 
+    // prioridade: cadastro IXC inativo 
+  const naoAtivo = norm(statusObj["Não Ativo"] ?? statusObj["Nao Ativo"]) === "sim";
+
+  if (naoAtivo) { 
+    return { label: "Não ativo", tone: "zinc" }; 
+  }
+
   // se não for transferência e todos os campos estiverem nulos, não pendencia
   if (isAllNullStatus(statusObj)) {
     return { label: "—", tone: "zinc", empty: true };
@@ -334,7 +417,7 @@ function resumirStatus(statusObj = {}) {
   const desistiu  = norm(statusObj["Desistiu"]) === "sim";
 
   if (desistiu)               return { label: "Desistiu", tone: "zinc" };
-  if (bloqueado)              return { label: "Bloqueado", tone: "red" };
+  if (bloqueado && ativado)   return { label: "Bloqueado", tone: "red" };
   if (semTaxa && ativado) return { label: "Sem taxa", tone: "indigo" };
   if (pagou && ativado)       return { label: "Taxa paga", tone: "emerald" };
   if (pagou && !ativado)      return { label: "Taxa paga (aguard.)", tone: "amber" };
@@ -441,17 +524,39 @@ export default function ClientesDoVendedorModal({
 
       const CONCURRENCY = 4;
       const pool = [];
-      const runOne = async (t) => {
-        try {
-          // 1) achar clienteId pelo nome/CPF (helper j├í no arquivo) :contentReference[oaicite:3]{index=3}
-          const { id: clienteId } = await getClienteByNome(t.nome, t.cpf);
-          // 2) pegar su_status do atendimento mais recente
-          const code = await fetchUltimoSuStatusByClienteId(clienteId); // ex.: "EP" :contentReference[oaicite:4]{index=4}
-          if (code) next[t.key] = { code, label: cat[code] || code };
-        } catch (e) {
-          // ignora "not found" silenciosamente
-        }
-      };
+        const runOne = async (t) => {
+          try {
+            // 1) achar cliente (precisamos do _raw.ativo)
+            const cliente = await getClienteByNome(t.nome, t.cpf);
+            const clienteId = cliente?.id;
+
+            // 2) tentar o su_status do atendimento mais recente (continua igual)
+            let code = null;
+            try {
+              code = await fetchUltimoSuStatusByClienteId(clienteId); // "EP" | "P" | "S" | "C" | "N" | null
+            } catch {
+              // silencioso
+            }
+
+            // 3) FALLBACK: se não houve atendimento e o cliente vier com ativo === "N",
+            //    mostra o badge "Não ativo" (code = "NA").
+            if (!code) {
+              const ativoFlag = String(cliente?._raw?.ativo || "").toUpperCase();
+              if (ativoFlag === "N") {
+                next[t.key] = { code: "NA", label: "Não ativo" };
+                return; // já resolveu este alvo
+              }
+            }
+
+            // 4) se houve code de atendimento, registra normalmente
+            if (code) {
+              next[t.key] = { code, label: cat[code] || code };
+            }
+          } catch {
+            // ignora not found
+          }
+        };
+
       for (const t of targets) {
         const p = runOne(t).finally(() => {
           const i = pool.indexOf(p);
@@ -519,56 +624,75 @@ if (!portalTarget) return null; // segurança em SSR / hidratação
   }, [open, onClose]);
 
   // Busca de status no NocoDB
-    const refreshStatus = async () => {
-      setRefreshing(true);
-      try {
-        const docs = Array.from(
-          new Set(
-            (registros || [])
-              .map((r) => formatDoc?.(get(r, "cpf", "CPF", "documento", "cpfCliente", "cpf_cliente")))
-              .filter(Boolean)
-          )
-        );
+    // Substitua TODO o seu refreshStatus por este
+        const refreshStatus = async () => {
+          setRefreshing(true);
+          try {
+            const docs = Array.from(
+              new Set(
+                (registros || [])
+                  .map((r) => formatDoc?.(get(r, "cpf", "CPF", "documento", "cpfCliente", "cpf_cliente")))
+                  .filter(Boolean)
+              )
+            );
 
-        let vendJson = {};
-        try {
-          const row = await getVendedorRowByName(vendedor);
-          vendJson = parseDadosJson(row) || {};
-        } catch { vendJson = {}; }
+            // carrega o JSON cacheado do vendedor (fallback)
+            let vendJson = {};
+            try {
+              const row = await getVendedorRowByName(vendedor);
+              vendJson = parseDadosJson(row) || {};
+            } catch {
+              vendJson = {};
+            }
 
-        // monta novo mapa e detecta mudanças
-        const nextMap = {};
-        for (const doc of docs) {
-          if (vendJson && Object.prototype.hasOwnProperty.call(vendJson, doc)) {
-            nextMap[doc] = vendJson[doc];
-          } else {
-            const found = await readCpfStatus(doc).catch(() => null);
-            if (found?.status) nextMap[doc] = found.status;
+            // monta o novo mapa consultando a tabela por CPF (com fallback pro vendJson)
+            const nextMap = {};
+            const CONCURRENCY = 6;
+            const pool = [];
+
+            const runOne = async (doc) => {
+              try {
+                const found = await readCpfStatus(doc).catch(() => null);
+                if (found?.status) {
+                  nextMap[doc] = found.status; // verdade na tabela
+                } else if (Object.prototype.hasOwnProperty.call(vendJson, doc)) {
+                  nextMap[doc] = vendJson[doc]; // fallback (cache)
+                }
+              } finally {
+                // nada
+              }
+            };
+
+            for (const doc of docs) {
+              const p = runOne(doc).finally(() => {
+                const i = pool.indexOf(p);
+                if (i >= 0) pool.splice(i, 1);
+              });
+              pool.push(p);
+              if (pool.length >= CONCURRENCY) await Promise.race(pool);
+            }
+            await Promise.all(pool);
+
+            // detectar diferenças vs. statusByDoc atual
+            const changed = new Set();
+            for (const doc of docs) {
+              const before = JSON.stringify(statusByDoc?.[doc] ?? null);
+              const after  = JSON.stringify(nextMap?.[doc] ?? null);
+              if (before !== after) changed.add(doc);
+            }
+
+            setStatusByDoc(nextMap);
+            setChangedDocs(changed);
+            if (changed.size) setTimeout(() => setChangedDocs(new Set()), 1200);
+
+            setLastUpdatedAt(Date.now());
+            setRefreshPulse(true);
+            setTimeout(() => setRefreshPulse(false), 300);
+          } finally {
+            setRefreshing(false);
           }
-        }
+        };
 
-        // detectar diferenças vs. statusByDoc atual
-        const changed = new Set();
-        for (const doc of docs) {
-          const before = JSON.stringify(statusByDoc?.[doc] ?? null);
-          const after  = JSON.stringify(nextMap?.[doc] ?? null);
-          if (before !== after) changed.add(doc);
-        }
-        setStatusByDoc(nextMap);
-        setChangedDocs(changed);
-        // limpa o destaque depois de 1.2s
-        if (changed.size) {
-          setTimeout(() => setChangedDocs(new Set()), 1200);
-        }
-
-        setLastUpdatedAt(Date.now());
-        // pulso rápido no container
-        setRefreshPulse(true);
-        setTimeout(() => setRefreshPulse(false), 300);
-      } finally {
-        setRefreshing(false);
-      }
-    };
 
     // carrega ao abrir / quando mudar vendedor/registros
     useEffect(() => {
@@ -710,8 +834,9 @@ const fmtPt = (v) => {
     try {
       const status = await calcularStatusViaIXC({ nome: t.nome, cpf: t.cpf });
 
+
       // grava no NocoDB com vendedor atual
-      await upsertCpfStatusByCpf(cpfKey, status, vendedor || "Outros");
+      const res = await patchCpfStatusIfChanged(cpfKey, status, vendedor || "Outros");
 
       emitDev("status:clientes:updated", {
         cpf: cpfKey,
@@ -720,8 +845,8 @@ const fmtPt = (v) => {
       });
 
       // atualiza a UI (statusByDoc + highlight)
-      setStatusByDoc((prev) => ({ ...prev, [cpfKey]: status }));
-      results.changedDocs.push(cpfKey);
+      setStatusByDoc((prev) => ({ ...prev, [cpfKey]: status })); 
+      results.changedDocs.push(cpfKey); 
       results.ok += 1;
     } catch (e) {
       if (e?.code === "CLIENTE_NOT_FOUND") {
