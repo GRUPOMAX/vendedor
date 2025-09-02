@@ -1,0 +1,67 @@
+-async function ncFindLastAuditByEmail(email, limit=1){
+-  const candidates = [
+-    `(email,eq,${email})`,
+-    `(Email,eq,${email})`,
+-    `(userEmail,eq,${email})`,
+-    `(loginEmail,eq,${email})`,
+-  ];
+-  const whereOr = candidates.join('~or');
+-  try {
+-    return await ncList(TBL_AUDIT, { where: whereOr, limit, sort: '-ts' });
+-  } catch (e) {
+-    const recent = await ncList(TBL_AUDIT, { limit: 200, sort: '-ts' });
+-    ...
+-    return recent.filter(match).slice(0, limit);
+-  }
+-}
++async function ncFindLastAuditByEmail(email, limit = 1) {
++  const candidates = [
++    `(email,eq,${email})`,
++    `(Email,eq,${email})`,
++    `(userEmail,eq,${email})`,
++    `(loginEmail,eq,${email})`,
++  ];
++  const whereOr = candidates.join('~or');
++
++  const tryFetch = async () => {
++    // sem sort remoto (evita FIELD_NOT_FOUND)
++    try { return await ncList(TBL_AUDIT, { where: whereOr, limit: 200 }); }
++    catch { return await ncList(TBL_AUDIT, { limit: 200 }); }
++  };
++
++  const recent = await tryFetch();
++
++  const match = (row) => {
++    const v = (k) => row?.[k];
++    const fromJson = (obj, path) => {
++      try {
++        const val = path.split('.').reduce((acc, p) => (acc && acc[p] != null ? acc[p] : undefined), obj);
++        return (typeof val === 'string') ? val : undefined;
++      } catch { return undefined; }
++    };
++    return [
++      v('email'), v('Email'), v('userEmail'), v('loginEmail'),
++      fromJson(row, 'user.email'), fromJson(row, 'payload.email')
++    ].some(x => String(x || '') === String(email));
++  };
++
++  // ordena em memória por campos de data conhecidos (fallback por Id)
++  const getTs = (r) => {
++    const candidatesTS = [
++      r.ts, r.TS, r.timestamp, r.Timestamp, r.dateTime, r.DateTime,
++      r.CreatedAt, r.UpdatedAt, r.created_at, r.updated_at, r.createdAt, r.updatedAt
++    ];
++    for (const c of candidatesTS) {
++      const t = Date.parse(c);
++      if (!Number.isNaN(t)) return t;
++    }
++    // fallback: tenta ordenar por Id numérico ou lexicográfico
++    const id = r.Id ?? r.id ?? r.ID ?? 0;
++    return Number.isFinite(+id) ? +id : 0;
++  };
++
++  return recent
++    .filter(match)
++    .sort((a, b) => getTs(b) - getTs(a))
++    .slice(0, limit);
++}

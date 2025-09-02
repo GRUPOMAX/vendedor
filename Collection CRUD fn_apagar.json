@@ -1,0 +1,569 @@
+
+{
+	"info": {
+		"name": "Collection CRUD fn_apagar",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Inserir fn_apagar",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {
+					"connection": true,
+					"accept-encoding": true,
+					"accept": true,
+					"user-agent": true
+				}
+			},
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "token após o \" : \"",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "id do usuario API",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "ixcsoft",
+						"value": "",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						
+                           {
+                             "key": "id_fornecedor",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "data_emissao",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "data_vencimento",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "valor",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "id_contas",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "tipo_pagamento",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "id_dado_bancario",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "tipo_pix",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "chave_pix",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "codigo_barras",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "documento",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "numero_nota",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "id_conta",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "filial_id",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "previsao",
+                             "value": "N",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "eh_despesa_veiculo",
+                             "value": "N",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "obs",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "id_entrada",
+                             "value": "0",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "status",
+                             "value": "A",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "status_auditoria",
+                             "value": "N",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "liberado",
+                             "value": "S",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "tipo_conta",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "duplicata",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "lote",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "previsao_conta_despesa",
+                             "value": "N",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "id_conta_class_finan_a",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "id_despesa_veiculo",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "centro_custo_regra_criterio",
+                             "value": "CE",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "id_centro_custo_criterio_rateio",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "id_centro_custo_rel_centro_custo_categoria",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "valor_aberto",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "valor_pago",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "data_pagamento",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "debito_data",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "valor_total_pago",
+                             "value": "0.00",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "valor_cancelado",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "data_cancelamento",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "id_mot_cancelamento",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "id_lote_pagamento",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "id_remessa_pagamento",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "comunicado",
+                             "value": "N",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "estornado",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "id_lote_importacao",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "conta_pagamento",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "botoes_classe_finan",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "id_conta_class_finan",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "valor_class_finan",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "grid_classe_finan",
+                             "value": "",
+                             "type": "text"
+                           },
+
+                           {
+                             "key": "json_class_finan",
+                             "value": "",
+                             "type": "text"
+
+                          }
+					],
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://HOST/webservice/v1/cliente",
+					"protocol": "https",
+					"host": [
+						"HOST"
+					],
+					"path": [
+						"webservice",
+						"v1",
+						"fn_apagar"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Deletar fn_apagar",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {
+					"connection": true,
+					"accept-encoding": true,
+					"accept": true,
+					"user-agent": true
+				}
+			},
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "token após o \" : \"",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "id do usuario API",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "ixcsoft",
+						"value": "",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://HOST/webservice/v1/fn_apagar/Id_a_deletar",
+					"protocol": "https",
+					"host": [
+						"HOST"
+					],
+					"path": [
+						"webservice",
+						"v1",
+						"fn_apagar",
+						"Id_a_deletar"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Editar fn_apagar",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {
+					"connection": true,
+					"accept-encoding": true,
+					"accept": true,
+					"user-agent": true
+				}
+			},
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "token após o \" : \"",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "id do usuario API",
+							"type": "string"
+						}
+					]
+				},
+				"method": "PUT",
+				"header": [
+					{
+						"key": "ixcsoft",
+						"value": "",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"id_fornecedor\": \"\",\n    \"data_emissao\": \"\",\n    \"data_vencimento\": \"\",\n    \"valor\": \"\",\n    \"id_contas\": \"\",\n    \"tipo_pagamento\": \"\",\n    \"id_dado_bancario\": \"\",\n    \"tipo_pix\": \"\",\n    \"chave_pix\": \"\",\n    \"codigo_barras\": \"\",\n    \"documento\": \"\",\n    \"numero_nota\": \"\",\n    \"id_conta\": \"\",\n    \"filial_id\": \"\",\n    \"previsao\": \"N\",\n    \"eh_despesa_veiculo\": \"N\",\n    \"obs\": \"\",\n    \"id_entrada\": \"0\",\n    \"status\": \"A\",\n    \"status_auditoria\": \"N\",\n    \"liberado\": \"S\",\n    \"tipo_conta\": \"\",\n    \"duplicata\": \"\",\n    \"lote\": \"\",\n    \"previsao_conta_despesa\": \"N\",\n    \"id_conta_class_finan_a\": \"\",\n    \"id_despesa_veiculo\": \"\",\n    \"centro_custo_regra_criterio\": \"CE\",\n    \"id_centro_custo_criterio_rateio\": \"\",\n    \"id_centro_custo_rel_centro_custo_categoria\": \"\",\n    \"valor_aberto\": \"\",\n    \"valor_pago\": \"\",\n    \"data_pagamento\": \"\",\n    \"debito_data\": \"\",\n    \"valor_total_pago\": \"0.00\",\n    \"valor_cancelado\": \"\",\n    \"data_cancelamento\": \"\",\n    \"id_mot_cancelamento\": \"\",\n    \"id_lote_pagamento\": \"\",\n    \"id_remessa_pagamento\": \"\",\n    \"comunicado\": \"N\",\n    \"estornado\": \"\",\n    \"id_lote_importacao\": \"\",\n    \"conta_pagamento\": \"\",\n    \"botoes_classe_finan\": \"\",\n    \"id_conta_class_finan\": \"\",\n    \"valor_class_finan\": \"\",\n    \"grid_classe_finan\": \"\",\n    \"json_class_finan\": \"\" \n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://HOST/webservice/v1/fn_apagar/Id_a_editar",
+					"protocol": "https",
+					"host": [
+						"HOST"
+					],
+					"path": [
+						"webservice",
+						"v1",
+						"fn_apagar",
+						"Id_a_editar"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Listar fn_apagar",
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {
+					"connection": true,
+					"accept": true,
+					"accept-encoding": true,
+					"user-agent": true
+				}
+			},
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "token após o \" : \"",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "id do usuario API",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "ixcsoft",
+						"value": "listar",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "formdata",
+					"formdata": [
+						{
+							"key": "qtype",
+							"value": "fn_apagar.id",
+							"type": "text"
+						},
+						{
+							"key": "query",
+							"value": "0",
+							"type": "text"
+						},
+						{
+							"key": "oper",
+							"value": ">",
+							"type": "text"
+						},
+						{
+							"key": "page",
+							"value": "1",
+							"type": "text"
+						},
+						{
+							"key": "rp",
+							"value": "20",
+							"type": "text"
+						},
+						{
+							"key": "sortname",
+							"value": "fn_apagar.id",
+							"type": "text"
+						},
+						{
+							"key": "sortorder",
+							"value": "asc",
+							"type": "text"
+						}
+					],
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://HOST/webservice/v1/fn_apagar",
+					"protocol": "https",
+					"host": [
+						"HOST"
+					],
+					"path": [
+						"webservice",
+						"v1",
+						"fn_apagar"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}
+
+                    

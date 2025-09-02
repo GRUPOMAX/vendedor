@@ -1,0 +1,153 @@
+    classificacaoPorVendedor,
+  ]);
+
+
+  //CONSOLE.LOGS
+  
+/*
+  // helpers locais só para o DEBUG
+const norm = (v) =>
+  (v || "").toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+const onlyDigits = (s) => String(s || "").replace(/\D/g, "");
+const guessCPF = (v) =>
+  onlyDigits(v?.cpf || v?.CPF || v?.documento || v?.cpfCliente || v?.cpf_cliente);
+
+
+useEffect(() => {
+  if (!vendasFiltradas.length) return;
+  console.log("[DBG] status keys:", Object.keys(statusByVendedorCpf || {}));
+  for (const v of vendasFiltradas) {
+    const cpf = guessCPF(v);
+    const vendKey = norm(v.__vendedorNome || v.vendedor || v.vendedorNome || "—");
+    const hitVend = !!statusByVendedorCpf?.[vendKey]?.[cpf];
+    let hitCpf = false;
+    if (!hitVend) {
+      for (const mapa of Object.values(statusByVendedorCpf || {})) {
+        if (mapa && mapa[cpf]) { hitCpf = true; break; }
+      }
+    }
+    if (!hitVend && !hitCpf) {
+      console.warn("[MISS] vendedor/CPF sem status:", vendKey, cpf, v.protocolo || v.dataHora);
+    }
+  }
+}, [vendasFiltradas, statusByVendedorCpf]);
+
+
+
+  useEffect(() => {
+    if (loading) return;
+
+    console.log("======== [ADM] VENDAS NO PERÍODO ========");
+    console.log("Período UI:", de, "→", ate);
+    console.log("Período real (min/max nas filtradas):", filtroExtremos);
+
+    const byVend = {};
+    for (const v of vendasFiltradas) {
+      const vendNome = (v.__vendedorNome || v.vendedor || v.vendedorNome || "—").toLowerCase();
+      (byVend[vendNome] ||= []).push(v);
+    }
+
+
+    
+
+    console.table(
+      Object.entries(byVend)
+        .sort((a, b) => b[1].length - a[1].length)
+        .map(([vendedor, arr]) => ({ vendedor, vendas: arr.length }))
+    );
+
+    Object.entries(byVend).forEach(([vendNome, arr]) => {
+      console.log(`-- ${vendNome} (${arr.length} vendas)`);
+      arr.slice(0, 5).forEach((v) =>
+        console.log(
+          v.dataHora || v.data || v.createdAt,
+          "plano:", v.plano || v.Plano,
+          "cpf:", v.cpf || v.CPF || v.cpfCliente || v["cpf_cliente"] || "-",
+          "prot:", v.protocolo || "-"
+        )
+      );
+    });
+
+    console.log("Total vendas filtradas:", vendasFiltradas.length);
+    console.log("=========================================");
+  }, [loading, de, ate, vend, vendasFiltradas, filtroExtremos]);
+
+  useEffect(() => {
+  if (loading) return;
+
+  console.log("======== [ADM] VENDAS NO PERÍODO ========");
+  console.log("Período UI:", de, "→", ate);
+  console.log("Período real (min/max nas filtradas):", filtroExtremos);
+
+  const byVend = {};
+  for (const v of vendasFiltradas) {
+    const vendNome = (v.__vendedorNome || v.vendedor || v.vendedorNome || "—").toLowerCase();
+    (byVend[vendNome] ||= []).push(v);
+  }
+
+  console.table(
+    Object.entries(byVend)
+      .sort((a, b) => b[1].length - a[1].length)
+      .map(([vendedor, arr]) => ({ vendedor, vendas: arr.length }))
+  );
+
+  Object.entries(byVend).forEach(([vendNome, arr]) => {
+    console.log(`-- ${vendNome} (${arr.length} vendas)`);
+    arr.slice(0, 5).forEach((v) =>
+      console.log(
+        v.dataHora || v.data || v.createdAt,
+        "plano:", v.plano || v.Plano,
+        "cpf:", v.cpf || v.CPF || v.cpfCliente || v["cpf_cliente"] || "-",
+        "prot:", v.protocolo || "-"
+      )
+    );
+  });
+
+  console.log("Total vendas filtradas:", vendasFiltradas.length);
+  console.log("=========================================");
+
+  // 👇 ADICIONE AQUI
+  const todasPorVend = {};
+  for (const v of vendasFiltradas) {
+    const vendNome = (v.__vendedorNome || v.vendedor || v.vendedorNome || "—").toLowerCase();
+    (todasPorVend[vendNome] ||= []).push(v);
+  }
+
+  console.log("======== [ADM] TODAS AS VENDAS (brutas) ========");
+  for (const [vendNome, vendas] of Object.entries(todasPorVend)) {
+    console.log(`-- ${vendNome} (${vendas.length} vendas totais)`);
+    vendas.forEach((v, i) => {
+      const dt = v.dataHora || v.data || v.createdAt;
+      const plano = v.plano || v.Plano;
+      const cpf = v.cpf || v.CPF || v.cpfCliente || v["cpf_cliente"] || "-";
+      const prot = v.protocolo || "-";
+      console.log(`   [${i + 1}] ${dt} · ${plano} · ${cpf} · ${prot}`);
+    });
+  }
+  console.log("===============================================");
+}, [loading, de, ate, vend, vendasFiltradas, filtroExtremos]);
+
+  useEffect(() => {
+    if (!vendas?.length) return;
+    const grupos = {};
+    for (const v of vendas) {
+      const nome = norm(v.__vendedorNome || v.vendedor || v.vendedorNome || "—");
+      grupos[nome] ??= [];
+      grupos[nome].push(v);
+    }
+
+    console.log("======== [DBG] VENDA TOTAL (TODAS AS VENDAS CARREGADAS, sem filtro de data) ========");
+    Object.entries(grupos).forEach(([nome, vendas]) => {
+      console.log(`-- ${nome} (${vendas.length} vendas totais)`);
+      vendas.forEach((v, i) => {
+        const dt = parseAnyDate(v.dataHora || v.data || v.createdAt)?.toLocaleString("pt-BR");
+        const cpf = guessCPF(v);
+        const prot = v.protocolo || v.Protocolo || "—";
+        const plano = v.plano || v.Plano || "—";
+        console.log(`   [${i + 1}] ${dt} · ${plano} · ${cpf} · ${prot}`);
+      });
+    });
+    console.log("=====================================================================================");
+  }, [vendas]);
+
+*/

@@ -1,0 +1,44 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  @apply bg-background dark:bg-dark-background text-text dark:text-dark-text;
+}
+
+/* ===== Scrollbar Emerald - claro/escuro via CSS vars ===== */
+.custom-scroll {
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+}
+
+/* Chrome/Edge/Safari */
+.custom-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+.custom-scroll::-webkit-scrollbar-track {
+  background: var(--scroll-track);
+  border-radius: 10px;
+}
+.custom-scroll::-webkit-scrollbar-thumb {
+  background: var(--scroll-thumb);
+  border-radius: 10px;
+}
+.custom-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
+}
+
+/* Tema CLARO */
+html:not(.dark) {
+  --scroll-thumb:        #10b981; /* emerald-500 */
+  --scroll-thumb-hover:  #059669; /* emerald-600 */
+  --scroll-track:        #e5e7eb; /* zinc-200 */
+}
+
+/* Tema ESCURO */
+html.dark {
+  --scroll-thumb:        #34d399; /* emerald-400 */
+  --scroll-thumb-hover:  #10b981; /* emerald-500 */
+  --scroll-track:        #111827; /* zinc-900 */
+}

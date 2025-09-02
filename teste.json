@@ -1,0 +1,14 @@
+{
+    "id_fornecedor": "126",
+    "data_emissao": "22/08/2025",
+    "data_vencimento": "22/08/2025",
+    "valor": "30,00",
+    "id_contas": "17",
+    "tipo_pagamento": "Pix",
+    "tipo_pix": "CPF_CNPJ",
+    "chave_pix": "19060662725",
+    "id_conta": "112",
+    "filial_id": "1",
+    "obs": "Comissão de vendas de 22-08-2025 até 22-08-2025 — Vendedor: Isaque — Valor: R$ 30.00",
+    "previsao": "N"
+}

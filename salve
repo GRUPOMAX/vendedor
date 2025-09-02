@@ -1,0 +1,255 @@
+import dotenv from "dotenv";
+dotenv.config();
+
+import express from "express";
+import cors from "cors";
+
+// 👇 ADICIONE estas 3 linhas:
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
+import { resolveCadastrosDir, } from "./src/paths.js";
+// ---------------------------------
+
+import { startWatcher } from "./utils/watcher.js";
+import { startRelatorioWatcher } from "./utils/relatorioWatcher.js";
+import { buscarVendedorPorEmail } from "./services/vendedorService.js";
+import { enviarNotificacaoWhatsApp } from "./services/notificacaoService.js";
+import { transferSaleByProtocolo, findSaleByProtocolo } from "./src/transferSale.js";
+
+// 👇 agora pode usar
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+const CADASTROS_DIR_DEBUG = path.join(__dirname, "data", "cadastros");
+
+
+
+// Start watchers
+console.log("🚀 Servidor de notificação iniciado...");
+startWatcher();
+startRelatorioWatcher();
+
+// Express API
+const app = express();
+app.use(express.json());
+app.use(cors());
+
+
+
+app.get("/api/vendas/debug-cadastros", (req, res) => {
+  try {
+    const dir = resolveCadastrosDir();
+    const exists = fs.existsSync(dir);
+    const files = exists ? fs.readdirSync(dir).filter(f => f.endsWith(".json")) : [];
+    res.json({ dir, exists, files });
+  } catch (e) {
+    res.status(500).json({ ok:false, error: e.message });
+  }
+});
+
+
+// temporário: em app.js
+app.get('/__debug/routes', (req, res) => {
+  const list = [];
+  app._router.stack.forEach((m) => {
+    if (m.route) {
+      const methods = Object.keys(m.route.methods).join(',').toUpperCase();
+      list.push({ path: m.route.path, methods });
+    } else if (m.name === 'router' && m.handle.stack) {
+      m.handle.stack.forEach(r => {
+        const route = r.route;
+        if (route) {
+          const methods = Object.keys(route.methods).join(',').toUpperCase();
+          list.push({ path: route.path, methods, prefix: m.regexp?.toString() });
+        }
+      });
+    }
+  });
+  res.json(list);
+});
+
+
+
+
+
+app.post("/notificar-status", async (req, res) => {
+    const { email, status, cliente, plano, protocolo, motivo } = req.body;
+  
+    if (!email || !status || !cliente) {
+      return res.status(400).json({ error: "Campos obrigatórios: email, status, cliente" });
+    }
+  
+    try {
+      const vendedor = await buscarVendedorPorEmail(email);
+  
+      if (!vendedor || vendedor.ReceberNotificação !== "True") {
+        return res.status(404).json({ error: "Vendedor não encontrado ou notificações desativadas" });
+      }
+  
+      const emoji = status === "Autorizada" ? "✅" : "❌";
+      const textoStatus = status === "Autorizada" ? "AUTORIZADA" : "NEGADA";
+  
+      const mensagem = `${emoji} *Venda ${textoStatus}*
+  
+  👤 Cliente: ${cliente}
+  📦 Plano: ${plano || "Não informado"}
+  🧾 Protocolo: ${protocolo || "N/A"}
+  ${motivo ? `📌 Motivo: ${motivo}` : ""}
+  
+  Verifique seu painel para mais detalhes.`;
+  
+      await enviarNotificacaoWhatsApp(vendedor.telefone, mensagem);
+      console.log(`📲 Notificação de "${status}" enviada para ${vendedor.nome}`);
+      return res.json({ success: true });
+    } catch (err) {
+      console.error("❌ Erro ao enviar notificação:", err.message);
+      return res.status(500).json({ error: "Erro interno ao enviar notificação" });
+    }
+  });
+
+
+app.post("/notificar-indicacao", async (req, res) => {
+    const { email, indicador, nomeIndicado, telefoneIndicado } = req.body;
+  
+    if (!email || !indicador || !nomeIndicado || !telefoneIndicado) {
+      return res.status(400).json({ error: "Campos obrigatórios: email, indicador, nomeIndicado, telefoneIndicado" });
+    }
+  
+    try {
+      const vendedor = await buscarVendedorPorEmail(email);
+  
+      if (!vendedor || vendedor.ReceberNotificação !== "True") {
+        return res.status(404).json({ error: "Vendedor não encontrado ou notificações desativadas" });
+      }
+  
+      const mensagem = `
+  📩 *Nova Indicação Recebida*
+  
+  👤 *Nome do indicado:* ${nomeIndicado}
+  📞 *Telefone do indicado:* ${telefoneIndicado}
+  🙋 *Indicado por:* ${indicador}
+  
+  🔎 Mais informações estão disponíveis no seu painel de vendas.
+      `;
+  
+      await enviarNotificacaoWhatsApp(vendedor.telefone, mensagem);
+      console.log(`📲 Indicação notificada para ${vendedor.nome}`);
+      return res.json({ success: true });
+    } catch (err) {
+      console.error("❌ Erro ao enviar notificação de indicação:", err.message);
+      return res.status(500).json({ error: "Erro interno ao enviar notificação de indicação" });
+    }
+  });
+  
+// 👀 GET para localizar a venda
+// GET /api/vendas/localizar?protocolo=MX-20250401-171147-5531
+app.get('/api/vendas/localizar', (req, res) => {
+  try {
+    const { protocolo } = req.query;
+    if (!protocolo) return res.status(400).json({ ok: false, error: 'protocolo é obrigatório' });
+    const found = findSaleByProtocolo(protocolo);
+    if (!found) return res.status(404).json({ ok: false, error: 'Venda não localizada em nenhum arquivo.' });
+    return res.json({
+      ok: true,
+      file: path.basename(found.file),
+      index: found.index,
+      venda: found.venda
+    });
+  } catch (e) {
+    return res.status(500).json({ ok: false, error: e.message });
+  }
+});
+
+// 🚚 POST para transferir (from é opcional agora)
+app.post('/api/vendas/transferir-basico', (req, res) => {
+  try {
+    const { protocolo, from, to } = req.body;
+    const result = transferSaleByProtocolo({ protocolo, from, to });
+    return res.json(result);
+  } catch (e) {
+    return res.status(400).json({ ok: false, error: e.message });
+  }
+});
+
+  
+
+const PORT = process.env.PORT || 10004;
+app.listen(PORT, () => {
+  console.log(`🌐 API escutando em http://localhost:${PORT}`);
+});
+
+
+
+
+
+
+
+
+// src/transferSale.js (ESM)
+import fs from "fs";
+import path from "path";
+import { resolveCadastrosDir } from "./paths.js";
+
+const CADASTROS_DIR = resolveCadastrosDir(); // <- automático
+
+const emailToFilePart = (email) => String(email).trim().toLowerCase().replace(/[@.]/g, "_");
+const nameToFilePart  = (name)  => String(name).trim().toLowerCase().replace(/\s+/g, "_");
+const fileForVendor   = (name, email) => path.join(CADASTROS_DIR, `${nameToFilePart(name)}__${emailToFilePart(email)}.json`);
+
+const loadJson = (file) => (fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, "utf8") || "[]") : []);
+const saveJson = (file, data) => {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(data, null, 2), "utf8");
+};
+
+// Varrer todos os arquivos
+export function findSaleByProtocolo(protocolo) {
+  const files = fs.readdirSync(CADASTROS_DIR).filter(f => f.endsWith(".json"));
+  for (const fname of files) {
+    const fpath = path.join(CADASTROS_DIR, fname);
+    const arr = loadJson(fpath);
+    const index = arr.findIndex(v => String(v.protocolo).trim() === String(protocolo).trim());
+    if (index !== -1) return { file: fpath, venda: arr[index], index };
+  }
+  return null;
+}
+
+export function transferSaleByProtocolo({ protocolo, from, to }) {
+  if (!protocolo) throw new Error("protocolo é obrigatório");
+  if (!to?.email || !to?.nome) throw new Error("to.nome e to.email são obrigatórios");
+
+  // tenta direto pelo 'from' (se informado), senão descobre sozinho
+  let origemFile, origemArr, idx, vendaOrig;
+  if (from?.nome && from?.email) {
+    const fromFile = fileForVendor(from.nome, from.email);
+    if (fs.existsSync(fromFile)) {
+      const arr = loadJson(fromFile);
+      const i = arr.findIndex(v => String(v.protocolo).trim() === String(protocolo).trim());
+      if (i !== -1) {
+        origemFile = fromFile; origemArr = arr; idx = i; vendaOrig = arr[i];
+      }
+    }
+  }
+  if (!vendaOrig) {
+    const found = findSaleByProtocolo(protocolo);
+    if (!found) throw new Error(`Venda ${protocolo} não localizada em ${CADASTROS_DIR}`);
+    origemFile = found.file; origemArr = loadJson(origemFile); idx = found.index; vendaOrig = found.venda;
+  }
+
+  const toFile = fileForVendor(to.nome, to.email);
+  const vendaAtualizada = { ...vendaOrig, vendedor: to.nome, vendedorEmail: to.email };
+
+  origemArr.splice(idx, 1);
+  saveJson(origemFile, origemArr);
+
+  const destinoArr = loadJson(toFile);
+  destinoArr.push(vendaAtualizada);
+  saveJson(toFile, destinoArr);
+
+  return {
+    ok: true,
+    protocolo,
+    fromFile: path.basename(origemFile),
+    toFile: path.basename(toFile),
+  };
+}
