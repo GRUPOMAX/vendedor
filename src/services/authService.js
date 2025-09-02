@@ -338,33 +338,5 @@ async function findVendedorByNomeEmail({ vendedorNome, email }) {
 }
 
 
-
-export async function loginVendedor({ vendedor, email, ip }) {
-  const nome = norm(vendedor);
-  const mail = normEmail(email);
-  if (!nome || !mail) throw new Error("Informe vendedor e email.");
-
-  const r = await findVendedorByNomeEmail({ vendedorNome: nome, email: mail });
-  if (!r.ok) {
-    if (r.reason === "not_found") throw new Error("Vendedor ou e-mail não encontrados no NocoDB.");
-    if (r.reason === "inactive") throw new Error("Vendedor inativo no NocoDB.");
-    if (r.reason === "blocked") throw new Error("Vendedor bloqueado no NocoDB.");
-    throw new Error("Falha ao validar vendedor no NocoDB.");
-  }
-
-  const v = r.vendedor;
-  const u = {
-    role: "vendedor",
-    name: v.nome,
-    email: v.email,
-    telefone: v.telefone ?? "",
-    classificacao: v.classificacao ?? "",
-    key: v.key,
-    ts: Date.now(),
-  };
-  await enforceIpRulesOrThrow(u, ip); // ← usa ip do form se vier; senão WHOAMI
-  return u;
-}
-
 // (exports úteis)
 export { normalizeIp, ipMatchesPattern };
