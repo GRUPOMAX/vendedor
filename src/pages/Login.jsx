@@ -36,18 +36,20 @@ export default function Login() {
 
       if (tab === "admin") {
         await Promise.all([
-          signInAdmin({
-            email: fd.get("email")?.trim(),
-            senha: fd.get("senha")?.trim(),
+           signInAdmin({ 
+            email: fd.get("email")?.trim(), 
+            senha: fd.get("senha")?.trim(), 
+            ip: (who?.ip && who.ip !== "::1" && who.ip !== "127.0.0.1") ? who.ip : (pubIp || undefined), 
           }),
           delay,
         ]);
       } else {
         await Promise.all([
-          signInVendedor({
-            vendedor: fd.get("vendedor")?.trim(),
-            email: fd.get("emailVend")?.trim()?.toLowerCase(),
-          }),
+           signInVendedor({ 
+              vendedor: fd.get("vendedor")?.trim(), 
+              email: fd.get("emailVend")?.trim()?.toLowerCase(), 
+              ip: (who?.ip && who.ip !== "::1" && who.ip !== "127.0.0.1") ? who.ip : (pubIp || undefined), 
+            }),
           delay,
         ]);
       }
