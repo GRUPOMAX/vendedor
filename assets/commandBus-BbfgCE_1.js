@@ -1,0 +1,1 @@
+const t=new EventTarget;function i(e,n={}){t.dispatchEvent(new CustomEvent(e,{detail:n}))}function r(e,n){const o=v=>n(v.detail);return t.addEventListener(e,o),()=>t.removeEventListener(e,o)}export{i as emitDev,r as onDev};
