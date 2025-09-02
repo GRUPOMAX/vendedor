@@ -57,6 +57,23 @@ function normalizeForMatch(ip) {
   return m ? m[0] : String(ip); 
 }
 
+async function preflightAcl({ ip, role, email }) {
+  // chama o teu servidor (middleware ACL já está na rota /protegido)
+  const r = await fetch(`${API_BASE}/protegido`, {
+    method: 'GET',
+    headers: {
+      'X-Forwarded-For': ip || '',
+      'X-Auth-Role': role || 'any',
+      'X-Auth-Email': email || ''
+    }
+  });
+  if (r.ok) return { ok: true };
+  let j = null; try { j = await r.json(); } catch {}
+  if (j?.error === 'access_denied') {
+    throw new Error('Acesso bloqueado por regra de conexão (IP não autorizado).');
+  }
+  throw new Error('Falha na verificação de acesso.');
+}
 
 async function getClientIp(ipOverride) {
   if (ipOverride) return normalizeForMatch(normalizeIp(ipOverride));
@@ -204,19 +221,49 @@ export async function loginAdmin({ email, senha, ip }) {
 
   const row = await findAdminRowByEmail(em);
   if (!row) throw new Error("Credenciais inválidas para administrador.");
-
-  const candidates = [norm(row?.password), norm(row?.["Password-mester"])];
-  const ok = candidates.some((v) => v && v === pw);
+  const ok = [norm(row?.password), norm(row?.["Password-mester"])].some((v) => v && v === pw);
   if (!ok) throw new Error("Credenciais inválidas para administrador.");
 
-  const u = {
-    role: "admin",
-    name: "Administrador",
-    email: row.email || row.Email || row["E-mail"] || em,
-  };
-  await enforceIpRulesOrThrow(u, ip); // ← usa ip do form se vier; senão WHOAMI
-  return u;
+  // ✅ pré-checagem centralizada no servidor
+  await preflightAcl({ ip, role: 'admin', email: em });
+
+  // (opcional) manter enforceIpRulesOrThrow como redundância local
+  await enforceIpRulesOrThrow({ role:'admin', email: em }, ip); // já existia
+
+  return { role:'admin', name:'Administrador', email: row.email || row.Email || row["E-mail"] || em };
 }
+
+export async function loginVendedor({ vendedor, email, ip }) {
+  const nome = norm(vendedor);
+  const mail = normEmail(email);
+  if (!nome || !mail) throw new Error("Informe vendedor e email.");
+
+  const r = await findVendedorByNomeEmail({ vendedorNome:nome, email:mail });
+  if (!r.ok) {
+    if (r.reason === "not_found") throw new Error("Vendedor ou e-mail não encontrados no NocoDB.");
+    if (r.reason === "inactive") throw new Error("Vendedor inativo no NocoDB.");
+    if (r.reason === "blocked") throw new Error("Vendedor bloqueado no NocoDB.");
+    throw new Error("Falha ao validar vendedor no NocoDB.");
+  }
+
+  // ✅ pré-checagem centralizada no servidor
+  await preflightAcl({ ip, role: 'vendedor', email: mail });
+
+  // (opcional) redundância local
+  await enforceIpRulesOrThrow({ role:'vendedor', email: mail }, ip);
+
+  const v = r.vendedor;
+  return {
+    role: "vendedor",
+    name: v.nome,
+    email: v.email,
+    telefone: v.telefone ?? "",
+    classificacao: v.classificacao ?? "",
+    key: v.key,
+    ts: Date.now(),
+  };
+}
+
 
 // ────────────────────────────────────────────────────────────────────────────────
 // VENDEDOR (NocoDB)
