@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ]   # ↩️ troque se sua branch padrão não for "main"
+    branches: [ gh-pages ]   # ↩️ troque se sua branch padrão não for "main"
   workflow_dispatch:
 
 # Permissões obrigatórias para o GitHub Pages

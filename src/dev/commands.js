@@ -18,7 +18,7 @@ const rules = [
       return "Debug de vendas: OFF";
     },
 
-    
+     
   },
 
     {
