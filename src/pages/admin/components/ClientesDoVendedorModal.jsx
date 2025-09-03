@@ -29,6 +29,7 @@ const IXC_TITULO_API   = "https://ixc-buscar-titulo.api.webserver.app.br/titulos
 const IXC_ORDENS_API  =  "https://ixc-buscar-ordens.api.webserver.app.br/ordens";
 
 
+
 const IXC_DEBUG = false; // liga/desliga logs
 
 async function debugFetch(url, opts) {
